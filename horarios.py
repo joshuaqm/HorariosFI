@@ -6,7 +6,7 @@ from bs4 import BeautifulSoup
 
 # Define una clase para representar cada fila de datos
 class Asignatura:
-    def __init__(self, clave, grupo, profesor, tipo, horario, dias, cupo, dificultad):
+    def __init__(self, clave, grupo, profesor, tipo, horario, dias, cupo, dificultad, prioridad):
         self.clave = clave
         self.grupo = grupo
         self.profesor = profesor
@@ -15,12 +15,13 @@ class Asignatura:
         self.dias = dias
         self.cupo = cupo
         self.dificultad = dificultad
+        self.prioridad = prioridad
 
     def __str__(self):
-        return f"Asignatura(clave={self.clave}, grupo={self.grupo}, profesor={self.profesor}, tipo={self.tipo}, horario={self.horario}, dias={self.dias}, cupo={self.cupo}, dificultad={self.dificultad})"
+        return f"Asignatura(clave={self.clave}, grupo={self.grupo}, profesor={self.profesor}, tipo={self.tipo}, horario={self.horario}, dias={self.dias}, cupo={self.cupo}, dificultad={self.dificultad}, prioridad={self.prioridad})"
 
 def obtenerDificultad(profesor):
-    print(profesor)
+    #print(profesor)
     return 0
 
 def formatearObjetos(asignaturas):
@@ -45,9 +46,25 @@ def formatearObjetos(asignaturas):
                 dias_numerico.append(6)
         asignatura.dias = dias_numerico
         
-# Base de Datos, Circuitos Electricos, Finanzas, Inteligencia Artificial, Economia
-# arreglo_materias = [1644, 1562, 1537, 406, 1413]
-arreglo_materias = [1562]
+def separarAsignaturas(asignaturas):
+    asignaturas_por_clave_y_turno = {}
+    for asignatura in asignaturas:
+        clave = asignatura.clave  # Asume que cada asignatura tiene una propiedad 'clave'
+        if clave not in asignaturas_por_clave_y_turno:
+            asignaturas_por_clave_y_turno[clave] = {"Matutino": [], "Vespertino": []}
+        
+        # Determinar el turno de la asignatura y añadirla al arreglo correspondiente
+        turno = "Matutino" if asignatura.horario[0] <= "13:00" else "Vespertino"
+        asignaturas_por_clave_y_turno[clave][turno].append(asignatura)
+    return asignaturas_por_clave_y_turno
+
+def imprimirElementos(asignaturas_por_clave_y_turno, turno_elegido):
+    for clave, asignaturas in asignaturas_por_clave_y_turno.items():
+            print(f"Clave: {clave}")
+            print(f"Asignaturas en turno {turno_elegido}:")
+            for asignatura in asignaturas[turno_elegido]:
+                print(asignatura)
+            print()
 # Configura el servicio de EdgeDriver (suponiendo que msedgedriver esté en el PATH)
 driver = webdriver.Edge()
 
@@ -56,61 +73,84 @@ driver.get("https://www.ssa.ingenieria.unam.mx/horarios.html")
 
 asignaturas = []  # Lista para almacenar objetos Asignatura
 
-try:
-    # Espera a que el formulario esté presente
-    form = WebDriverWait(driver, 10).until(
-        EC.presence_of_element_located((By.ID, "hrsFormHorarioAsignatura"))
-    )
+def obtenerDatos(arreglo_materias):
+    try:
+        # Espera a que el formulario esté presente
+        form = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.ID, "hrsFormHorarioAsignatura"))
+        )
 
-    # Encuentra los elementos del formulario
-    clave_input = form.find_element(By.ID, "clave")
-    buscar_button = form.find_element(By.ID, "buscar")
+        # Encuentra los elementos del formulario
+        clave_input = form.find_element(By.ID, "clave")
+        buscar_button = form.find_element(By.ID, "buscar")
 
-    # Llena los campos del formulario
-    for clave in arreglo_materias:
-        clave_input.send_keys(str(clave))  # Asegúrate de enviar la clave como string
-        # Envía el formulario haciendo clic en el botón de búsqueda
-        buscar_button.click()
-        page_source = driver.page_source
-        soup = BeautifulSoup(page_source, 'html.parser')
-        # Encuentra la tabla por su clase
-        table = soup.find('table', {'class': 'table table-horarios-custom'})
-        if table:
-            # Procesa la tabla y crea un DataFrame
-            rows = table.find_all('tr')
-            for row in rows:
-                cols = row.find_all('td')
-                cols = [col.text.strip() for col in cols]
-                # Verifica si la fila tiene datos válidos
-                if cols and len(cols) == 7:  # Asumiendo que cada fila tiene 7 columnas
-                    # Crea un objeto Asignatura y agrégalo a la lista
-                    profesor = cols[2].split('(', 1)[0]
-                    dificultad = obtenerDificultad(profesor)
-                    asignatura = Asignatura(cols[0], cols[1], cols[2], cols[3], cols[4], cols[5], cols[6], dificultad)
-                    asignaturas.append(asignatura)
-            print(f"Datos obtenidos para la clave de asignatura: {clave}")
-        else:
-            print(f"No se encontró la clave de asignatura: {clave} en la página de horarios.")
-        clave_input.clear()
+        prioridad = 0
+        # Llena los campos del formulario
+        for clave in arreglo_materias:
+            prioridad += 1
+            clave_input.send_keys(str(clave))  # Asegúrate de enviar la clave como string
+            # Envía el formulario haciendo clic en el botón de búsqueda
+            buscar_button.click()
+            page_source = driver.page_source
+            soup = BeautifulSoup(page_source, 'html.parser')
+            # Encuentra la tabla por su clase
+            table = soup.find('table', {'class': 'table table-horarios-custom'})
+            if table:
+                # Procesa la tabla y crea un DataFrame
+                rows = table.find_all('tr')
+                for row in rows:
+                    cols = row.find_all('td')
+                    cols = [col.text.strip() for col in cols]
+                    # Verifica si la fila tiene datos válidos
+                    if cols and len(cols) == 7:  # Asumiendo que cada fila tiene 7 columnas
+                        # Crea un objeto Asignatura y agrégalo a la lista
+                        profesor = cols[2].split('(', 1)[0]
+                        dificultad = obtenerDificultad(profesor)
+                        asignatura = Asignatura(cols[0], cols[1], cols[2], cols[3], cols[4], cols[5], cols[6], dificultad, prioridad)
+                        asignaturas.append(asignatura)
+                print(f"Datos obtenidos para la clave de asignatura: {clave}")
+            else:
+                print(f"No se encontró la clave de asignatura: {clave} en la página de horarios.")
+            clave_input.clear()
+        return asignaturas
+    except Exception as e:
+        # En caso de error, captura la excepción y muestra un mensaje
+        print("Error al cargar la página:", e)
 
-except Exception as e:
-    # En caso de error, captura la excepción y muestra un mensaje
-    print("Error al cargar la página:", e)
+    finally:
+        # Cierra el navegador al finalizar
+        driver.quit()
 
-finally:
-    # Cierra el navegador al finalizar
-    driver.quit()
+def main():
+    # Base de Datos, Circuitos Electricos, Finanzas, Inteligencia Artificial, Economia
+    # arreglo_materias = [1644, 1562, 1537, 406, 1413]
+    arreglo_materias = [1644, 1562, 1537]
+    # Ejecutamos las peticiones al navegador
+    asignaturas = obtenerDatos(arreglo_materias)
+    #Le damos formato de arreglo al horario y dias
+    formatearObjetos(asignaturas)
+    # Separamos las asignaturas por clave y turno
+    asignaturas_por_clave_y_turno = separarAsignaturas(asignaturas)
 
-# print("Tipos de horario: \n1. Matutino\n2.Vespertino\n")
-# tipo_horario = int(input("Ingresa el numero del tipo de horario quieres: "))
-# if tipo_horario == 1:
-#     print("\nDificultad: \n1. Facil\n2. Medio\n3. Dificil\n")
-#     tipo_horario = int(input("Ingresa el numero de dificultad que quieres(escoge en base a tu numero de inscripcion): "))
-# elif tipo_horario == 2:
-#     print("\nDificultad: \n1. Facil\n2. Medio\n3. Dificil\n")
-#     tipo_horario = int(input("Ingresa el numero de dificultad que quieres(escoge en base a tu numero de inscripcion): "))
+    # print("Tipos de horario: \n1. Matutino\n2.Vespertino\n")
+    # tipo_horario = int(input("Ingresa el numero del turno de horario quieres: "))
+    tipo_horario = 1
+    if tipo_horario == 1:
+        turno_elegido = "Matutino"
+    #     print("\nDificultad: \n1. Facil\n2. Medio\n3. Dificil\n")
+    #     tipo_horario = int(input("Ingresa el numero de dificultad que quieres(escoge en base a tu numero de inscripcion): "))
+        imprimirElementos(asignaturas_por_clave_y_turno, turno_elegido)
+        
+    elif tipo_horario == 2:
+        turno_elegido = "Vespertino"
+        imprimirElementos(asignaturas_por_clave_y_turno, turno_elegido)
+    #     print("\nDificultad: \n1. Facil\n2. Medio\n3. Dificil\n")
+    #     tipo_horario = int(input("Ingresa el numero de dificultad que quieres(escoge en base a tu numero de inscripcion): "))
 
-# Ahora puedes trabajar con la lista de objetos Asignatura según tus necesidades
-formatearObjetos(asignaturas)
-for asignatura in asignaturas:
-    print(asignatura)
+    
+    
+    # Separamos las asignaturas por clave y turno
+    # Tu lista de objetos asignatura
+
+    
+main()
