@@ -65,6 +65,26 @@ def imprimirElementos(asignaturas_por_clave_y_turno, turno_elegido):
             for asignatura in asignaturas[turno_elegido]:
                 print(asignatura)
             print()
+
+# print(type(asignaturas_por_clave_y_turno))   DICTIONARY
+#     print(type(asignaturas_por_clave_y_turno.items()))  DICTIONARY ITEMS
+#     print(type(turno_elegido)) STRING
+#     for asingatura in asignaturas_por_clave_y_turno.items():  
+#         print(type(asingatura))   TUPLE
+#         print(asingatura)    
+def generaOpciones(asignaturas_por_clave_y_turno, turno_elegido):
+    opciones = {}
+    i = 1  # Initialize a counter for unique key generation
+    for clave, asignaturas in asignaturas_por_clave_y_turno.items():
+        grupos = asignaturas[turno_elegido]
+        for asignatura in grupos:
+            key = f"{clave}_{i}"  # Generate a unique key for each Asignatura object
+            opciones[key] = asignatura
+            i += 1  # Increment the counter for the next unique key
+        break
+    return opciones
+
+
 # Configura el servicio de EdgeDriver (suponiendo que msedgedriver esté en el PATH)
 driver = webdriver.Edge()
 
@@ -124,7 +144,7 @@ def obtenerDatos(arreglo_materias):
 def main():
     # Base de Datos, Circuitos Electricos, Finanzas, Inteligencia Artificial, Economia
     # arreglo_materias = [1644, 1562, 1537, 406, 1413]
-    arreglo_materias = [1644, 1562, 1537]
+    arreglo_materias = [1644, 1562]
     # Ejecutamos las peticiones al navegador
     asignaturas = obtenerDatos(arreglo_materias)
     #Le damos formato de arreglo al horario y dias
@@ -134,23 +154,23 @@ def main():
 
     # print("Tipos de horario: \n1. Matutino\n2.Vespertino\n")
     # tipo_horario = int(input("Ingresa el numero del turno de horario quieres: "))
-    tipo_horario = 1
+    tipo_horario = 2
     if tipo_horario == 1:
         turno_elegido = "Matutino"
     #     print("\nDificultad: \n1. Facil\n2. Medio\n3. Dificil\n")
     #     tipo_horario = int(input("Ingresa el numero de dificultad que quieres(escoge en base a tu numero de inscripcion): "))
-        imprimirElementos(asignaturas_por_clave_y_turno, turno_elegido)
-        
     elif tipo_horario == 2:
         turno_elegido = "Vespertino"
-        imprimirElementos(asignaturas_por_clave_y_turno, turno_elegido)
+
+    #imprimirElementos(asignaturas_por_clave_y_turno, turno_elegido)
+    grupos = generaOpciones(asignaturas_por_clave_y_turno, turno_elegido)
     #     print("\nDificultad: \n1. Facil\n2. Medio\n3. Dificil\n")
     #     tipo_horario = int(input("Ingresa el numero de dificultad que quieres(escoge en base a tu numero de inscripcion): "))
-
-    
+    for key, asignatura in grupos.items():
+        print("Opciones disponibles: ")
+        print(f"Opcion: {key}, Nombre: {asignatura.clave}, Profesor: {asignatura.profesor}, Horario: {asignatura.horario}")
     
     # Separamos las asignaturas por clave y turno
     # Tu lista de objetos asignatura
 
-    
 main()
