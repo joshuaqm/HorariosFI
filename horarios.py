@@ -16,7 +16,7 @@ class Asignatura:
         self.cupo = cupo
         self.dificultad = dificultad
         self.prioridad = prioridad
-
+    
     def __str__(self):
         return f"Asignatura(clave={self.clave}, grupo={self.grupo}, profesor={self.profesor}, tipo={self.tipo}, horario={self.horario}, dias={self.dias}, cupo={self.cupo}, dificultad={self.dificultad}, prioridad={self.prioridad})"
 
@@ -46,17 +46,32 @@ def formatearObjetos(asignaturas):
                 dias_numerico.append(6)
         asignatura.dias = dias_numerico
         
-def separarAsignaturas(asignaturas):
-    asignaturas_por_clave_y_turno = {}
-    for asignatura in asignaturas:
-        clave = asignatura.clave  # Asume que cada asignatura tiene una propiedad 'clave'
-        if clave not in asignaturas_por_clave_y_turno:
-            asignaturas_por_clave_y_turno[clave] = {"Matutino": [], "Vespertino": []}
-        
-        # Determinar el turno de la asignatura y añadirla al arreglo correspondiente
-        turno = "Matutino" if asignatura.horario[0] <= "13:00" else "Vespertino"
-        asignaturas_por_clave_y_turno[clave][turno].append(asignatura)
-    return asignaturas_por_clave_y_turno
+def separarAsignaturas(asignaturas, turno):
+    asignaturas_turno = []
+    asignaturas_por_clave = {}  # Step 2: Use a dictionary to group by clave
+
+    # Existing logic to filter asignaturas by turno
+    if turno == "Matutino":
+        for asignatura in asignaturas:
+            if asignatura.horario[0] <= '13:00':
+                asignaturas_turno.append(asignatura)
+    elif turno == "Vespertino":
+        for asignatura in asignaturas:
+            if asignatura.horario[0] > '13:00':
+                asignaturas_turno.append(asignatura)
+
+    # Group asignaturas by clave
+    for asignatura in asignaturas_turno:
+        clave = asignatura.clave
+        if clave not in asignaturas_por_clave:
+            asignaturas_por_clave[clave] = [asignatura]
+        else:
+            asignaturas_por_clave[clave].append(asignatura)
+
+    # Convert the dictionary values to an array of arrays
+    asignaturas_clave_turno = list(asignaturas_por_clave.values())
+
+    return asignaturas_clave_turno
 
 def imprimirElementos(asignaturas_por_clave_y_turno, turno_elegido):
     for clave, asignaturas in asignaturas_por_clave_y_turno.items():
@@ -72,16 +87,9 @@ def imprimirElementos(asignaturas_por_clave_y_turno, turno_elegido):
 #     for asingatura in asignaturas_por_clave_y_turno.items():  
 #         print(type(asingatura))   TUPLE
 #         print(asingatura)    
-def generaOpciones(asignaturas_por_clave_y_turno, turno_elegido):
+def generaOpciones(asignaturas_clave_turno):
     opciones = {}
-    i = 1  # Initialize a counter for unique key generation
-    for clave, asignaturas in asignaturas_por_clave_y_turno.items():
-        grupos = asignaturas[turno_elegido]
-        for asignatura in grupos:
-            key = f"{clave}_{i}"  # Generate a unique key for each Asignatura object
-            opciones[key] = asignatura
-            i += 1  # Increment the counter for the next unique key
-        break
+    
     return opciones
 
 
@@ -149,9 +157,6 @@ def main():
     asignaturas = obtenerDatos(arreglo_materias)
     #Le damos formato de arreglo al horario y dias
     formatearObjetos(asignaturas)
-    # Separamos las asignaturas por clave y turno
-    asignaturas_por_clave_y_turno = separarAsignaturas(asignaturas)
-
     # print("Tipos de horario: \n1. Matutino\n2.Vespertino\n")
     # tipo_horario = int(input("Ingresa el numero del turno de horario quieres: "))
     tipo_horario = 2
@@ -162,14 +167,18 @@ def main():
     elif tipo_horario == 2:
         turno_elegido = "Vespertino"
 
+    # Separamos las asignaturas por clave y turno
+    asignaturas_clave_turno = separarAsignaturas(asignaturas, turno_elegido)
+    # for objeto in asignaturas_clave_turno:
+    #     for asignatura in objeto:
+    #         print(asignatura)     
+    print(asignaturas_clave_turno[1][0])   
     #imprimirElementos(asignaturas_por_clave_y_turno, turno_elegido)
-    grupos = generaOpciones(asignaturas_por_clave_y_turno, turno_elegido)
+    grupos = generaOpciones(asignaturas_clave_turno)
     #     print("\nDificultad: \n1. Facil\n2. Medio\n3. Dificil\n")
     #     tipo_horario = int(input("Ingresa el numero de dificultad que quieres(escoge en base a tu numero de inscripcion): "))
-    for key, asignatura in grupos.items():
-        print("Opciones disponibles: ")
-        print(f"Opcion: {key}, Nombre: {asignatura.clave}, Profesor: {asignatura.profesor}, Horario: {asignatura.horario}")
-    
+    print("Opciones disponibles: ")
+
     # Separamos las asignaturas por clave y turno
     # Tu lista de objetos asignatura
 
