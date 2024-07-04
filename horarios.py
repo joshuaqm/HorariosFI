@@ -152,7 +152,8 @@ def obtenerDatos(arreglo_materias):
 def main():
     # Base de Datos, Circuitos Electricos, Finanzas, Inteligencia Artificial, Economia
     # arreglo_materias = [1644, 1562, 1537, 406, 1413]
-    arreglo_materias = [1644, 1562]
+    # arreglo_materias = [1644, 1562]
+    arreglo_materias = [1537]
     # Ejecutamos las peticiones al navegador
     asignaturas = obtenerDatos(arreglo_materias)
     #Le damos formato de arreglo al horario y dias
@@ -169,12 +170,15 @@ def main():
 
     # Separamos las asignaturas por clave y turno
     asignaturas_clave_turno = separarAsignaturas(asignaturas, turno_elegido)
+    for asignatura in asignaturas_clave_turno:
+        for item in asignatura:
+            print(item)
     # for objeto in asignaturas_clave_turno:
     #     for asignatura in objeto:
     #         print(asignatura)     
-    print(asignaturas_clave_turno[1][0])   
+    # print(asignaturas_clave_turno[1][0])   
     #imprimirElementos(asignaturas_por_clave_y_turno, turno_elegido)
-    grupos = generaOpciones(asignaturas_clave_turno)
+    # grupos = generaOpciones(asignaturas_clave_turno)
     #     print("\nDificultad: \n1. Facil\n2. Medio\n3. Dificil\n")
     #     tipo_horario = int(input("Ingresa el numero de dificultad que quieres(escoge en base a tu numero de inscripcion): "))
     print("Opciones disponibles: ")
