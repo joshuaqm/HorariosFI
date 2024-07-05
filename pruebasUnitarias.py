@@ -56,16 +56,55 @@ def conversionMinutos(time_str):
     hours, minutes = map(int, time_str.split(':'))
     return hours * 60 + minutes
 
-def agregaNoTraslapados(arr, new_horario, opciones_base):
-    """Adds new_horario to arr if it doesn't overlap with existing horarios by day and hour."""
+# def agregaNoTraslapados(arr, new_horario, opcionesFinales):
+#     """Adds new_horario to arr if it doesn't overlap with existing horarios by day and hour."""
+#     # Convert the new_horario's start and end times to minutes
+#     new_start, new_end = map(conversionMinutos, new_horario.horario)
+    
+#     for existing_horario in arr:
+#         # Check for day overlap
+#         day_overlap = any(day in new_horario.dias for day in existing_horario.dias)
+#         if not day_overlap:
+#             # No day overlap, continue to the next existing_horario
+#             continue
+        
+#         # Convert the existing_horario's start and end times to minutes
+#         existing_start, existing_end = map(conversionMinutos, existing_horario.horario)
+        
+#         # Check for time overlap
+#         if not (new_end <= existing_start or new_start >= existing_end):
+#             # Overlap detected, do not add new_horario
+#             return False
+    
+#     # No overlap detected, add new_horario
+#     print(arr[0])
+#     arr.append(new_horario)
+#     return True
+def agregaNoTraslapados(arr, new_horario, opcionesFinales):
+    """Adds new_horario to arr if it doesn't overlap with existing horarios by day, hour, and unique clave."""
     # Convert the new_horario's start and end times to minutes
     new_start, new_end = map(conversionMinutos, new_horario.horario)
     
+    claveExists = False
+    for existing_horario in arr:
+        # Check if the clave already exists
+        if new_horario.clave == existing_horario.clave:
+            claveExists = True
+            # Assuming opcionesFinales is to be used here as per the requirement
+            # if not opcionesFinales:
+            #     opcionesFinales = []
+            # opcionesFinales.append(existing_horario)
+            # opcionesFinales.append(new_horario)
+            break  # Assuming we only care about the first match
+
+    if claveExists:
+        # Clave already exists, so we've handled it by creating/updating opcionesFinales
+        return False  # Or handle as needed
+
     for existing_horario in arr:
         # Check for day overlap
         day_overlap = any(day in new_horario.dias for day in existing_horario.dias)
         if not day_overlap:
-            # No day overlap, continue to the next existing_horario
             continue
         
         # Convert the existing_horario's start and end times to minutes
@@ -73,11 +112,10 @@ def agregaNoTraslapados(arr, new_horario, opciones_base):
         
         # Check for time overlap
         if not (new_end <= existing_start or new_start >= existing_end):
-            # Overlap detected, do not add new_horario
             return False
     
-    # No overlap detected, add new_horario
     arr.append(new_horario)
+    opcionesFinales.append(arr)
     return True
 
 def generate_days_dict(arr):
@@ -94,7 +132,18 @@ def generate_days_dict(arr):
     # Step 5: Return or print the dictionary
     return days_dict
 
+def creaArreglo(arreglo, nuevaOpcion, opcionesFinales):
+    if(arreglo[1].clave == nuevaOpcion.clave):
+        del arreglo[1]
+        arreglo.append(nuevaOpcion)
+    else:
+        print("No existe")
+    nuevoArreglo = arreglo.copy()
+    opcionesFinales.append(nuevoArreglo)
+    arreglo.pop()
+
 def generaOpciones(asignaturas_clave_turno):
+    opcionesFinales = []
     n_opciones_base = len(asignaturas_clave_turno[0])
     opciones_base = [[] for _ in range(n_opciones_base)]
     for i in range(n_opciones_base):
@@ -102,40 +151,54 @@ def generaOpciones(asignaturas_clave_turno):
             opciones_base[i].append(asignaturas_clave_turno[0][i])
 
     # Objeto de la opcion 1
-    print(opciones_base[0][0])
-    #Arreglo de la opcion 1
-    print(opciones_base[0])
-    #Arreglo de la opcion 2
-    print(opciones_base[1])
+    # print(opciones_base[0][0])
+    # #Arreglo de la opcion 1
+    # print(opciones_base[0])
+    # #Arreglo de la opcion 2
+    # print(opciones_base[1])
 
-    # Arreglo de la siguiente clave
-    print(asignaturas_clave_turno[1])
-    # Objeto 1 de la siguiente clave
-    print(asignaturas_clave_turno[1][0])
-    # Objeto 2 de la siguiente clave
-    print(asignaturas_clave_turno[1][1])
-    # Objeto 3 de la siguiente clave
-    print(asignaturas_clave_turno[1][2])
+    # # Arreglo de la siguiente clave
+    # print(asignaturas_clave_turno[1])
+    # # Objeto 1 de la siguiente clave
+    # print(asignaturas_clave_turno[1][0])
+    # # Objeto 2 de la siguiente clave
+    # print(asignaturas_clave_turno[1][1])
+    # # Objeto 3 de la siguiente clave
+    # print(asignaturas_clave_turno[1][2])
 
-    # Agregar asignaturas no traslapadas a la opcion 1
-    agregaNoTraslapados(opciones_base[0], asignaturas_clave_turno[1][0], opciones_base)
-    agregaNoTraslapados(opciones_base[0], asignaturas_clave_turno[1][1], opciones_base)
-    agregaNoTraslapados(opciones_base[0], asignaturas_clave_turno[1][2], opciones_base)
+    # # Agregar asignaturas no traslapadas a la opcion 1
+    comb1 = agregaNoTraslapados(opciones_base[0], asignaturas_clave_turno[1][0], opcionesFinales)
+    comb2 = agregaNoTraslapados(opciones_base[0], asignaturas_clave_turno[1][1], opcionesFinales)
+    if(comb2 == False):
+        creaArreglo(opciones_base[0], asignaturas_clave_turno[1][1], opcionesFinales)
+    comb3 = agregaNoTraslapados(opciones_base[0], asignaturas_clave_turno[1][2], opcionesFinales)
+    if(comb3 == False):
+        creaArreglo(opciones_base[0], asignaturas_clave_turno[1][2], opcionesFinales)
     # Agregar asignaturas no traslapadas a la opcion 2
-    agregaNoTraslapados(opciones_base[1], asignaturas_clave_turno[1][0], opciones_base)
-    agregaNoTraslapados(opciones_base[1], asignaturas_clave_turno[1][1], opciones_base)
-    agregaNoTraslapados(opciones_base[1], asignaturas_clave_turno[1][2], opciones_base)
+    # comb4 = agregaNoTraslapados(opciones_base[1], asignaturas_clave_turno[1][0], opcionesFinales)
+    # if(comb4 == False):
+    #     creaArreglo(opciones_base[1], asignaturas_clave_turno[1][0], opcionesFinales)
+    # comb5 = agregaNoTraslapados(opciones_base[1], asignaturas_clave_turno[1][1], opcionesFinales)
+    # if(comb5 == False):
+    #     creaArreglo(opciones_base[1], asignaturas_clave_turno[1][1], opcionesFinales)
 
-    print("Se generaron:" + str(len(opciones_base)) + " opciones")
-    # Print the options to verify the content
-    opcion1 = generate_days_dict(opciones_base[0])
-    opcion2 = generate_days_dict(opciones_base[1])
-    # opcion3 = generate_days_dict(opciones_base[2])
-    # opcion4 = generate_days_dict(opciones_base[3])
+    comb6 = agregaNoTraslapados(opciones_base[1], asignaturas_clave_turno[1][2], opcionesFinales)
+    # print(comb1, comb2, comb3, comb5, comb6)
+    print(comb1, comb2, comb6)
+    print("Se generaron:" + str(len(opcionesFinales)) + " opciones finales")
+    print(opcionesFinales)
+    # # Print the options to verify the content
+    opcion1 = generate_days_dict(opcionesFinales[0])
+    opcion2 = generate_days_dict(opcionesFinales[1])
+    opcion3 = generate_days_dict(opcionesFinales[2])
+    # opcion4 = generate_days_dict(opcionesFinales[3])
+    # opcion5 = generate_days_dict(opcionesFinales[4])
     print(opcion1)
     print(opcion2)
-    # print(opcion3)
+    print(opcion3)
+
     # print(opcion4)
+    # print(opcion5)
 
 # This will print each option to verify the content
     
