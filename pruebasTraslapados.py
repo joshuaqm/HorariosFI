@@ -1,11 +1,12 @@
 # Example usage
 class Horario:
-    def __init__(self, arregloDias, arregloHoras):
+    def __init__(self, arregloDias, arregloHoras, clave):
         self.arregloDias = arregloDias
         self.arregloHoras = arregloHoras
+        self.clave = clave
 
     def __str__(self):
-        return f"Horario(arregloDias={self.arregloDias}, arregloHoras={self.arregloHoras})"
+        return f"Horario(arregloDias={self.arregloDias}, arregloHoras={self.arregloHoras}, clave={self.clave})"
 
 
 def conversionMinutos(time_str):
@@ -40,21 +41,24 @@ def agregaNoTraslapados(arr, new_horario):
     arr.append(new_horario)
     return True
 
-Horario1 = Horario([1, 2, 3, 4], ['13:00', '15:00'])
+Horario1 = Horario([1, 2, 3, 4], ['13:00', '15:00'], '1')
 # Horario2 = Horario([1, 2, 3, 4], ['15:00', '17:00'])
 # Horario3 = Horario([1, 2, 3, 4], ['17:00', '19:00'])
-Horario4 = Horario([5,6], ['14:00', '16:00'])
-Horario5 = Horario([1, 2, 3, 4], ['16:00', '18:00'])
+Horario4 = Horario([5,6], ['14:00', '16:00'], '1')
+Horario5 = Horario([1, 2, 3, 4], ['16:00', '18:00'], '2')
+Horario6 = Horario([5,6], ['16:00', '18:00'], '2')
+Horario7 = Horario([5,6], ['15:30', '17:00'], '1')
 arr = []
 
 # agregaNoTraslapados(arr, horario0)
 # agregaNoTraslapados(arr, horario1)
-
 agregaNoTraslapados(arr, Horario1)
 # agregaNoTraslapados(arr, Horario2)
 # agregaNoTraslapados(arr, Horario3)
 agregaNoTraslapados(arr, Horario4)
 agregaNoTraslapados(arr, Horario5)
+agregaNoTraslapados(arr, Horario6)
+agregaNoTraslapados(arr, Horario7)
 
 
 print(arr)

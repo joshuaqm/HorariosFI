@@ -56,7 +56,7 @@ def conversionMinutos(time_str):
     hours, minutes = map(int, time_str.split(':'))
     return hours * 60 + minutes
 
-def agregaNoTraslapados(arr, new_horario):
+def agregaNoTraslapados(arr, new_horario, opciones_base):
     """Adds new_horario to arr if it doesn't overlap with existing horarios by day and hour."""
     # Convert the new_horario's start and end times to minutes
     new_start, new_end = map(conversionMinutos, new_horario.horario)
@@ -87,64 +87,62 @@ def generate_days_dict(arr):
     # Step 2: Iterate over each Horario object in arr
     for horario in arr:
         # Step 3: Iterate over each day in the Horario object's arregloDias
-        for day in horario.arregloDias:
+        for day in horario.dias:
             # Step 4: Append the Horario object to the corresponding list in days_dict
-            days_dict[day].append(horario.arregloHoras)
+            days_dict[day].append(horario.horario)
     
     # Step 5: Return or print the dictionary
     return days_dict
 
 def generaOpciones(asignaturas_clave_turno):
     n_opciones_base = len(asignaturas_clave_turno[0])
-    opcionesFinales = [{i: [] for i in range(1, 7)} for _ in range(n_opciones_base)]
+    opciones_base = [[] for _ in range(n_opciones_base)]
+    for i in range(n_opciones_base):
+        if asignaturas_clave_turno and asignaturas_clave_turno[0]:  # Check if there's at least one element
+            opciones_base[i].append(asignaturas_clave_turno[0][i])
+
+    # Objeto de la opcion 1
+    print(opciones_base[0][0])
+    #Arreglo de la opcion 1
+    print(opciones_base[0])
+    #Arreglo de la opcion 2
+    print(opciones_base[1])
+
+    # Arreglo de la siguiente clave
+    print(asignaturas_clave_turno[1])
+    # Objeto 1 de la siguiente clave
+    print(asignaturas_clave_turno[1][0])
+    # Objeto 2 de la siguiente clave
+    print(asignaturas_clave_turno[1][1])
+    # Objeto 3 de la siguiente clave
+    print(asignaturas_clave_turno[1][2])
+
+    # Agregar asignaturas no traslapadas a la opcion 1
+    agregaNoTraslapados(opciones_base[0], asignaturas_clave_turno[1][0], opciones_base)
+    agregaNoTraslapados(opciones_base[0], asignaturas_clave_turno[1][1], opciones_base)
+    agregaNoTraslapados(opciones_base[0], asignaturas_clave_turno[1][2], opciones_base)
+    # Agregar asignaturas no traslapadas a la opcion 2
+    agregaNoTraslapados(opciones_base[1], asignaturas_clave_turno[1][0], opciones_base)
+    agregaNoTraslapados(opciones_base[1], asignaturas_clave_turno[1][1], opciones_base)
+    agregaNoTraslapados(opciones_base[1], asignaturas_clave_turno[1][2], opciones_base)
+
+    print("Se generaron:" + str(len(opciones_base)) + " opciones")
+    # Print the options to verify the content
+    opcion1 = generate_days_dict(opciones_base[0])
+    opcion2 = generate_days_dict(opciones_base[1])
+    # opcion3 = generate_days_dict(opciones_base[2])
+    # opcion4 = generate_days_dict(opciones_base[3])
+    print(opcion1)
+    print(opcion2)
+    # print(opcion3)
+    # print(opcion4)
+
+# This will print each option to verify the content
+    
+    # opcionesFinales = [{i: [] for i in range(1, 7)} for _ in range(n_opciones_base)]
     
     n_total_asignaturas = len(asignaturas_clave_turno)
-    # print(n_total_asignaturas)
-    # print(opcionesFinales
-    #CORREGIR ESTA LOGICA PARA CAMBIAR DE ALMACENAR EN DICCIONARIO A ALMACENAR EN ARREGLOS
-# opcionesFinales = [[] for _ in range(n_opciones_base)]
-    # for asignatura_clave_turno in asignaturas_clave_turno:
-    #     for i, asignatura in enumerate(asignatura_clave_turno):
-    #         # Assuming you have a way to determine which opcion an asignatura should be added to
-    #         # This is a placeholder logic, replace it with your actual logic
-    #         opcion_index = i % n_opciones_base  # Example logic: distribute asignaturas evenly across opciones
-    #         opcionesFinales[opcion_index].append(asignatura)  
-    for i, opcion in enumerate(opcionesFinales):
-        for key in opcion:
-            for asignatura in asignaturas_clave_turno[0][i].dias:  # Assuming asignaturas_clave_turno structure matches your needs
-                if asignatura == key:
-                    # opcionesFinales[i][key].append((asignaturas_clave_turno[0][i].clave,asignaturas_clave_turno[0][i].grupo,asignaturas_clave_turno[0][i].horario))
-                    opcionesFinales[i][key].append(asignaturas_clave_turno[0][i])
-    
-    # To print the options
-    for opcion in opcionesFinales:
-        print("Opción:" + str(opcionesFinales.index(opcion)+1))
-        for key in opcion:
-            if opcion[key]:
-                print(f"{key}: {opcion[key]}")
-            else:
-                print(f"{key}: Libre")
-        print("\n")
-
-    # print("Se generaron: " + str(len(opcionesFinales)) + " opciones")
-    # The first index is the option in opcionesFinales
-    # The second index is first key of the day were the object is stored
-    # The third index is the object itself
-    # After accessing the object, you can access its attributes like this:
-    # print((opcionesFinales[0][1][0].dias))
-    # print((opcionesFinales[0][1][0].horario))
-    # temporal = Temporal(opcionesFinales[0][1][0].horario, opcionesFinales[0][1][0].dias)
-    # print(temporal)
-    # print((opcionesFinales[0]))
-    # print((opcionesFinales[1][2][0].dias))
-    # print((opcionesFinales[1][2][0].horario))
-
-    # print((asignaturas_clave_turno))
-    # print((asignaturas_clave_turno[1][0]))
-    # print((asignaturas_clave_turno[1][1]))
-    # print((asignaturas_clave_turno[1][2]))
-    
-    # for asignatura in asignaturas_clave_turno[1]
+  
        
     
 asignaturas = []
