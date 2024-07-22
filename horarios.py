@@ -5,6 +5,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from bs4 import BeautifulSoup
 from openpyxl import Workbook
 from openpyxl.styles import Alignment
+from itertools import combinations
 
 class Grupo:
     def __init__(self, clave, grupo, profesor, tipo, horario, dias):
@@ -58,7 +59,6 @@ def horarios_no_se_traslapen(horario1, dias1, horario2, dias2):
     inicio2, fin2 = [int(h.replace(':', '')) for h in horario2]
     return fin1 <= inicio2 or fin2 <= inicio1
 
-from itertools import combinations
 
 def generar_combinaciones(grupos, claves_asignaturas):
     posibles_horarios = []
@@ -102,23 +102,32 @@ def crear_horario_excel(horarios, archivo_salida):
         # Ubicar los horarios en las celdas correspondientes
         for grupo in horario:
             inicio, fin = grupo.horario
-            datos_grupo = f"{grupo.clave} - {grupo.grupo}\n{grupo.profesor}"
+            datos_grupo = f"{grupo.clave} - {grupo.grupo} - {grupo.profesor}"
 
             inicio_idx = horas.index(inicio) + fila_inicio + 1
             fin_idx = horas.index(fin) + fila_inicio + 1
+
             for dia in grupo.dias:
                 for fila in range(inicio_idx, fin_idx):
-                    ws.cell(row=fila, column=dia + 1, value=f"{grupo.clave}-{grupo.grupo}")
+                    # Escribir el grupo en el horario correspondiente
+                    if ws.cell(row=fila, column=dia + 1).value:
+                        ws.cell(row=fila, column=dia + 1).value += f", {grupo.clave}-{grupo.grupo}"
+                    else:
+                        ws.cell(row=fila, column=dia + 1, value=f"{grupo.clave}-{grupo.grupo}")
                     ws.cell(row=fila, column=dia + 1).alignment = Alignment(horizontal='center', vertical='center')
-                
-                # Añadir datos del grupo al lado derecho
-                ws.cell(row=inicio_idx, column=len(dias_semana) + 2, value=datos_grupo)
-                ws.cell(row=inicio_idx, column=len(dias_semana) + 2).alignment = Alignment(horizontal='left', vertical='top')
+
+            # Añadir datos del grupo al lado derecho
+            grupo_fila = fila_inicio + 1 + horario.index(grupo) * 2  # Incrementar la fila por cada grupo
+            ws.cell(row=grupo_fila, column=len(dias_semana) + 2, value=datos_grupo)
+            ws.cell(row=grupo_fila, column=len(dias_semana) + 2).alignment = Alignment(horizontal='left', vertical='top')
 
         # Incrementar la fila de inicio para la próxima tabla con un espaciado de 5 filas
         fila_inicio += len(horas) + 6
 
     wb.save(archivo_salida)
+
+
+
 
 # Configura el servicio de EdgeDriver (suponiendo que msedgedriver esté en el PATH)
 driver = webdriver.Edge()
@@ -177,9 +186,9 @@ def obtenerDatos(arreglo_materias):
 
 
 def main():
-    # Base de Datos, Circuitos Electricos, Finanzas, Inteligencia Artificial, Economia
-    # arreglo_materias = [1644, 1562, 1537, 406, 1413]
-    arreglo_materias = [1644,1562]
+    # Base de Datos, Lab BD, Circuitos Electricos, Lab Circuitos, Finanzas, Inteligencia Artificial, Economia
+    arreglo_materias = [1644, 6644, 1562, 1537, 406, 1413]
+    # arreglo_materias = [1644,1562]
     grupos = obtenerDatos(arreglo_materias)
     #Le damos formato de arreglo al horario y dias
     formatearObjetos(grupos)
@@ -191,14 +200,27 @@ def main():
 
     # Guardar horarios en archivos Excel
     if posibles_horarios_vespertinos:
-        crear_horario_excel(posibles_horarios_vespertinos, 'HorariosVespertinos.xlsx')
+        opciones = []
+        for horario in posibles_horarios_vespertinos:
+            if len(horario) == len(arreglo_materias):
+                opciones.append(horario)
+        
+        crear_horario_excel(opciones, 'HorariosVespertinos.xlsx')
         print("Horario guardado en 'HorariosVespertinos.xlsx'")
+        print("Opciones vespertinas generadas:", len(opciones))
     else:
         print("No hay horarios vespertinos disponibles")
 
     if posibles_horarios_matutinos:
-        crear_horario_excel(posibles_horarios_matutinos, 'HorariosMatutinos.xlsx')
+        opciones = []
+        for horario in posibles_horarios_matutinos:
+            if len(horario) == len(arreglo_materias):
+                opciones.append(horario)
+        
+        crear_horario_excel(opciones, 'HorariosMatutinos.xlsx')
         print("Horario guardado en 'HorariosMatutinos.xlsx'")
+        print("Opciones matutinas generadas:", len(opciones))
+
     else:
         print("No hay horarios matutinos disponibles")
     
