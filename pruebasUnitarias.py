@@ -133,90 +133,93 @@ def generate_days_dict(arr):
     return days_dict
 
 def creaArreglo(arreglo, nuevaOpcion, opcionesFinales):
-    if(arreglo[1].clave == nuevaOpcion.clave):
-        del arreglo[1]
-        arreglo.append(nuevaOpcion)
+    # Check if arreglo has at least 2 elements and if nuevaOpcion has the attribute 'clave'
+    if len(arreglo) > 1 and hasattr(nuevaOpcion, 'clave'):
+        # Find the index of the element with the same clave as nuevaOpcion, if it exists
+        index = next((i for i, item in enumerate(arreglo) if hasattr(item, 'clave') and item.clave == nuevaOpcion.clave), None)
+        if index is not None:
+            # If found, delete the element at the found index and append nuevaOpcion
+            del arreglo[index]
+            arreglo.append(nuevaOpcion)
+        else:
+            # print("No existe")
+            print()
     else:
-        print("No existe")
+        # If arreglo does not have enough elements or nuevaOpcion does not have 'clave', print "No existe"
+        # print("No existe")
+        print()
+    
+    # Copy arreglo to nuevoArreglo and append it to opcionesFinales
     nuevoArreglo = arreglo.copy()
     opcionesFinales.append(nuevoArreglo)
-    arreglo.pop()
+    
+    # Remove the last element from arreglo if it's not empty
+    if arreglo:
+        arreglo.pop()
 
 def generaOpciones(asignaturas_clave_turno):
     opcionesFinales = []
     n_opciones_base = len(asignaturas_clave_turno[0])
     opciones_base = [[] for _ in range(n_opciones_base)]
-    for i in range(n_opciones_base):
-        if asignaturas_clave_turno and asignaturas_clave_turno[0]:  # Check if there's at least one element
-            opciones_base[i].append(asignaturas_clave_turno[0][i])
+    opciones_adicionales = [[] for _ in range(n_opciones_base)]
 
-    # Objeto de la opcion 1
-    # print(opciones_base[0][0])
-    # #Arreglo de la opcion 1
-    # print(opciones_base[0])
-    # #Arreglo de la opcion 2
-    # print(opciones_base[1])
+    for asignaturas in asignaturas_clave_turno:
+        for i, asignatura in enumerate(asignaturas):
+            # Dynamically extend opciones_base and opciones_adicionales if needed
+            while len(opciones_base) <= i:
+                opciones_base.append([])
+            while len(opciones_adicionales) <= i:
+                opciones_adicionales.append([])
 
-    # # Arreglo de la siguiente clave
-    # print(asignaturas_clave_turno[1])
-    # # Objeto 1 de la siguiente clave
-    # print(asignaturas_clave_turno[1][0])
-    # # Objeto 2 de la siguiente clave
-    # print(asignaturas_clave_turno[1][1])
-    # # Objeto 3 de la siguiente clave
-    # print(asignaturas_clave_turno[1][2])
+            # Now proceed with the original logic, as opciones_base and opciones_adicionales
+            # are guaranteed to have a sub-list at index i
+            if asignatura not in opciones_base[i]:
+                if asignaturas_clave_turno.index(asignaturas) == 0:
+                    opciones_base[i].append(asignatura)
+                else:
+                    opciones_adicionales[i].append(asignatura)
+    
+    i = 0
+    while i < len(opciones_base):
+        if(len(opciones_base[i])==0):
+            opciones_base.remove(opciones_base[i])
+        i+=1
+    
+    # print(opciones_base)
+    print(opciones_adicionales[0][1])
+    # print(opciones_base[1][0])
+    
 
     # # Agregar asignaturas no traslapadas a la opcion 1
-    comb1 = agregaNoTraslapados(opciones_base[0], asignaturas_clave_turno[1][0], opcionesFinales)
-    comb2 = agregaNoTraslapados(opciones_base[0], asignaturas_clave_turno[1][1], opcionesFinales)
-    if(comb2 == False):
-        creaArreglo(opciones_base[0], asignaturas_clave_turno[1][1], opcionesFinales)
-    comb3 = agregaNoTraslapados(opciones_base[0], asignaturas_clave_turno[1][2], opcionesFinales)
-    if(comb3 == False):
-        creaArreglo(opciones_base[0], asignaturas_clave_turno[1][2], opcionesFinales)
-    # Agregar asignaturas no traslapadas a la opcion 2
-    # comb4 = agregaNoTraslapados(opciones_base[1], asignaturas_clave_turno[1][0], opcionesFinales)
-    # if(comb4 == False):
-    #     creaArreglo(opciones_base[1], asignaturas_clave_turno[1][0], opcionesFinales)
-    # comb5 = agregaNoTraslapados(opciones_base[1], asignaturas_clave_turno[1][1], opcionesFinales)
-    # if(comb5 == False):
-    #     creaArreglo(opciones_base[1], asignaturas_clave_turno[1][1], opcionesFinales)
+    # Automating the process with loops
+    i = j = k = 0
+    while i < len(opciones_base):
+        # print(opciones_base[i])
+        i+=1
 
-    comb6 = agregaNoTraslapados(opciones_base[1], asignaturas_clave_turno[1][2], opcionesFinales)
-    # print(comb1, comb2, comb3, comb5, comb6)
-    print(comb1, comb2, comb6)
-    print("Se generaron:" + str(len(opcionesFinales)) + " opciones finales")
-    print(opcionesFinales)
-    # # Print the options to verify the content
-    opcion1 = generate_days_dict(opcionesFinales[0])
-    opcion2 = generate_days_dict(opcionesFinales[1])
-    opcion3 = generate_days_dict(opcionesFinales[2])
-    # opcion4 = generate_days_dict(opcionesFinales[3])
-    # opcion5 = generate_days_dict(opcionesFinales[4])
-    print(opcion1)
-    print(opcion2)
-    print(opcion3)
+    # Print the number of final options generated
+    # print("Se generaron:" + str(len(opcionesFinales)) + " opciones finales")
+    # print(opcionesFinales)
 
-    # print(opcion4)
-    # print(opcion5)
-
-# This will print each option to verify the content
-    
-    # opcionesFinales = [{i: [] for i in range(1, 7)} for _ in range(n_opciones_base)]
-    
-    n_total_asignaturas = len(asignaturas_clave_turno)
+    # # Generate and print day dictionaries for each final option
+    # for index, opcionFinal in enumerate(opcionesFinales):
+    #     opcion_dict = generate_days_dict(opcionFinal)
+    #     print(f"Opcion {index + 1}:")
+    #     print(opcion_dict)
   
        
     
 asignaturas = []
 asignaturas.append(Asignatura('1644', '4', 'ING. LUCIRALIA HERNANDEZ HERNANDEZ', 'T', ['15:00','17:00'], [1,3,5], 40, 0, 1))
 asignaturas.append(Asignatura('1644', '6', 'M.C. DAVID RICARDO RUIZ REYES', 'T', ['17:00','19:00'], [2,3,4], 40, 0, 1))
-# asignaturas.append(Asignatura('1644', '8', 'ING. LUCIRALIA FAKE', 'T', ['19:00','21:00'], [1,3,5], 40, 0, 1))
+asignaturas.append(Asignatura('1644', '8', 'ING. LUCIRALIA FAKE', 'T', ['19:00','21:00'], [1,3,5], 40, 0, 1))
 asignaturas.append(Asignatura('1562', '1', 'ING. VICTOR MANUEL SANCHEZ ESQUIVEL', 'T', ['16:00','17:30'], [2,4], 40, 0, 1))
 asignaturas.append(Asignatura('1562', '2', 'M.I. PATRICIA HONG CIRION', 'T', ['18:00','19:30'], [2,4], 40, 0, 1))
 asignaturas.append(Asignatura('1562', '3', 'ING. IVAN MARTINEZ PEREZ', 'T', ['20:30','22:00'], [2,4], 40, 0, 1))
-# asignaturas.append(Asignatura('1537', '2', 'ING. PROFESOR POR ASIGNAR', 'T', ['17:00','20:00'], [5], 40, 0, 1))
-# asignaturas.append(Asignatura('1537', '6', 'MTRO. ALFREDO URIBE ARANDA', 'T', ['18:00','21:00'], [5], 40, 0, 1))
+asignaturas.append(Asignatura('1562', '4', 'ING. IVAN FAKE PEREZ', 'T', ['20:30','22:00'], [2,4], 40, 0, 1))
+
+asignaturas.append(Asignatura('1537', '2', 'ING. PROFESOR POR ASIGNAR', 'T', ['17:00','20:00'], [5], 40, 0, 1))
+asignaturas.append(Asignatura('1537', '6', 'MTRO. ALFREDO URIBE ARANDA', 'T', ['18:00','21:00'], [5], 40, 0, 1))
 asignaturas_separadas = separarAsignaturas(asignaturas, "Vespertino")
 generaOpciones(asignaturas_separadas)
 

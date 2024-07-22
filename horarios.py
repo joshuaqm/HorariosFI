@@ -3,26 +3,20 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from bs4 import BeautifulSoup
+from openpyxl import Workbook
+from openpyxl.styles import Alignment
 
-# Define una clase para representar cada fila de datos
-class Asignatura:
-    def __init__(self, clave, grupo, profesor, tipo, horario, dias, cupo, dificultad, prioridad):
+class Grupo:
+    def __init__(self, clave, grupo, profesor, tipo, horario, dias):
         self.clave = clave
         self.grupo = grupo
         self.profesor = profesor
         self.tipo = tipo
-        self.horario = horario
-        self.dias = dias
-        self.cupo = cupo
-        self.dificultad = dificultad
-        self.prioridad = prioridad
-    
-    def __str__(self):
-        return f"Asignatura(clave={self.clave}, grupo={self.grupo}, profesor={self.profesor}, tipo={self.tipo}, horario={self.horario}, dias={self.dias}, cupo={self.cupo}, dificultad={self.dificultad}, prioridad={self.prioridad})"
+        self.horario = horario  # [hora_inicio, hora_fin]
+        self.dias = dias  # Lista de enteros representando los días de la semana (0-6)
 
-def obtenerDificultad(profesor):
-    #print(profesor)
-    return 0
+    def __repr__(self):
+        return f"Grupo(clave={self.clave}, grupo={self.grupo}, profesor={self.profesor}, tipo={self.tipo}, horario={self.horario}, dias={self.dias})"
 
 def formatearObjetos(asignaturas):
     for asignatura in asignaturas:
@@ -46,52 +40,85 @@ def formatearObjetos(asignaturas):
                 dias_numerico.append(6)
         asignatura.dias = dias_numerico
         
-def separarAsignaturas(asignaturas, turno):
-    asignaturas_turno = []
-    asignaturas_por_clave = {}  # Step 2: Use a dictionary to group by clave
 
-    # Existing logic to filter asignaturas by turno
-    if turno == "Matutino":
-        for asignatura in asignaturas:
-            if asignatura.horario[0] <= '13:00':
-                asignaturas_turno.append(asignatura)
-    elif turno == "Vespertino":
-        for asignatura in asignaturas:
-            if asignatura.horario[0] > '13:00':
-                asignaturas_turno.append(asignatura)
+def es_vespertino(grupo):
+    return any(hora >= '15:00' for hora in grupo.horario)
 
-    # Group asignaturas by clave
-    for asignatura in asignaturas_turno:
-        clave = asignatura.clave
-        if clave not in asignaturas_por_clave:
-            asignaturas_por_clave[clave] = [asignatura]
-        else:
-            asignaturas_por_clave[clave].append(asignatura)
+def separar_grupos_por_horario(grupos):
+    matutinos = [grupo for grupo in grupos if not es_vespertino(grupo)]
+    vespertinos = [grupo for grupo in grupos if es_vespertino(grupo)]
+    return matutinos, vespertinos
 
-    # Convert the dictionary values to an array of arrays
-    asignaturas_clave_turno = list(asignaturas_por_clave.values())
+def horarios_no_se_traslapen(horario1, dias1, horario2, dias2):
+    dias_comunes = set(dias1) & set(dias2)
+    if not dias_comunes:
+        return True
 
-    return asignaturas_clave_turno
+    inicio1, fin1 = [int(h.replace(':', '')) for h in horario1]
+    inicio2, fin2 = [int(h.replace(':', '')) for h in horario2]
+    return fin1 <= inicio2 or fin2 <= inicio1
 
-def imprimirElementos(asignaturas_por_clave_y_turno, turno_elegido):
-    for clave, asignaturas in asignaturas_por_clave_y_turno.items():
-            print(f"Clave: {clave}")
-            print(f"Asignaturas en turno {turno_elegido}:")
-            for asignatura in asignaturas[turno_elegido]:
-                print(asignatura)
-            print()
+from itertools import combinations
 
-# print(type(asignaturas_por_clave_y_turno))   DICTIONARY
-#     print(type(asignaturas_por_clave_y_turno.items()))  DICTIONARY ITEMS
-#     print(type(turno_elegido)) STRING
-#     for asingatura in asignaturas_por_clave_y_turno.items():  
-#         print(type(asingatura))   TUPLE
-#         print(asingatura)    
-def generaOpciones(asignaturas_clave_turno):
-    opciones = {}
+def generar_combinaciones(grupos, claves_asignaturas):
+    posibles_horarios = []
+
+    for combinacion in combinations(grupos, len(claves_asignaturas)):
+        if len(set(grupo.clave for grupo in combinacion)) == len(claves_asignaturas):
+            valido = True
+            for i, grupo1 in enumerate(combinacion):
+                for grupo2 in combinacion[i+1:]:
+                    if not horarios_no_se_traslapen(grupo1.horario, grupo1.dias, grupo2.horario, grupo2.dias):
+                        valido = False
+                        break
+                if not valido:
+                    break
+            if valido:
+                posibles_horarios.append(combinacion)
     
-    return opciones
+    return posibles_horarios
 
+def crear_horario_excel(horarios, archivo_salida):
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Horario Semanal"
+
+    # Cabeceras de días de la semana
+    dias_semana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
+    horas = [f"{h:02d}:{m:02d}" for h in range(7, 24) for m in (0, 30)]
+    
+    fila_inicio = 1
+    for i, horario in enumerate(horarios):
+        # Escribir cabeceras
+        ws.cell(row=fila_inicio, column=1, value='Hora')
+        for col, dia in enumerate(dias_semana, start=2):
+            ws.cell(row=fila_inicio, column=col, value=dia)
+        ws.cell(row=fila_inicio, column=len(dias_semana) + 2, value='Datos del Grupo')
+
+        # Escribir rango de horas
+        for row, hora in enumerate(horas, start=fila_inicio + 1):
+            ws.cell(row=row, column=1, value=hora)
+
+        # Ubicar los horarios en las celdas correspondientes
+        for grupo in horario:
+            inicio, fin = grupo.horario
+            datos_grupo = f"{grupo.clave} - {grupo.grupo}\n{grupo.profesor}"
+
+            inicio_idx = horas.index(inicio) + fila_inicio + 1
+            fin_idx = horas.index(fin) + fila_inicio + 1
+            for dia in grupo.dias:
+                for fila in range(inicio_idx, fin_idx):
+                    ws.cell(row=fila, column=dia + 1, value=f"{grupo.clave}-{grupo.grupo}")
+                    ws.cell(row=fila, column=dia + 1).alignment = Alignment(horizontal='center', vertical='center')
+                
+                # Añadir datos del grupo al lado derecho
+                ws.cell(row=inicio_idx, column=len(dias_semana) + 2, value=datos_grupo)
+                ws.cell(row=inicio_idx, column=len(dias_semana) + 2).alignment = Alignment(horizontal='left', vertical='top')
+
+        # Incrementar la fila de inicio para la próxima tabla con un espaciado de 5 filas
+        fila_inicio += len(horas) + 6
+
+    wb.save(archivo_salida)
 
 # Configura el servicio de EdgeDriver (suponiendo que msedgedriver esté en el PATH)
 driver = webdriver.Edge()
@@ -133,8 +160,7 @@ def obtenerDatos(arreglo_materias):
                     if cols and len(cols) == 7:  # Asumiendo que cada fila tiene 7 columnas
                         # Crea un objeto Asignatura y agrégalo a la lista
                         profesor = cols[2].split('(', 1)[0]
-                        dificultad = obtenerDificultad(profesor)
-                        asignatura = Asignatura(cols[0], cols[1], cols[2], cols[3], cols[4], cols[5], cols[6], dificultad, prioridad)
+                        asignatura = Grupo(cols[0], cols[1], cols[2], cols[3], cols[4], cols[5])
                         asignaturas.append(asignatura)
                 print(f"Datos obtenidos para la clave de asignatura: {clave}")
             else:
@@ -149,41 +175,31 @@ def obtenerDatos(arreglo_materias):
         # Cierra el navegador al finalizar
         driver.quit()
 
+
 def main():
     # Base de Datos, Circuitos Electricos, Finanzas, Inteligencia Artificial, Economia
     # arreglo_materias = [1644, 1562, 1537, 406, 1413]
-    # arreglo_materias = [1644, 1562]
-    arreglo_materias = [1537]
-    # Ejecutamos las peticiones al navegador
-    asignaturas = obtenerDatos(arreglo_materias)
+    arreglo_materias = [1644,1562]
+    grupos = obtenerDatos(arreglo_materias)
     #Le damos formato de arreglo al horario y dias
-    formatearObjetos(asignaturas)
-    # print("Tipos de horario: \n1. Matutino\n2.Vespertino\n")
-    # tipo_horario = int(input("Ingresa el numero del turno de horario quieres: "))
-    tipo_horario = 2
-    if tipo_horario == 1:
-        turno_elegido = "Matutino"
-    #     print("\nDificultad: \n1. Facil\n2. Medio\n3. Dificil\n")
-    #     tipo_horario = int(input("Ingresa el numero de dificultad que quieres(escoge en base a tu numero de inscripcion): "))
-    elif tipo_horario == 2:
-        turno_elegido = "Vespertino"
+    formatearObjetos(grupos)
 
-    # Separamos las asignaturas por clave y turno
-    asignaturas_clave_turno = separarAsignaturas(asignaturas, turno_elegido)
-    for asignatura in asignaturas_clave_turno:
-        for item in asignatura:
-            print(item)
-    # for objeto in asignaturas_clave_turno:
-    #     for asignatura in objeto:
-    #         print(asignatura)     
-    # print(asignaturas_clave_turno[1][0])   
-    #imprimirElementos(asignaturas_por_clave_y_turno, turno_elegido)
-    # grupos = generaOpciones(asignaturas_clave_turno)
-    #     print("\nDificultad: \n1. Facil\n2. Medio\n3. Dificil\n")
-    #     tipo_horario = int(input("Ingresa el numero de dificultad que quieres(escoge en base a tu numero de inscripcion): "))
-    print("Opciones disponibles: ")
+    matutinos, vespertinos = separar_grupos_por_horario(grupos)
 
-    # Separamos las asignaturas por clave y turno
-    # Tu lista de objetos asignatura
+    posibles_horarios_vespertinos = generar_combinaciones(vespertinos, arreglo_materias)
+    posibles_horarios_matutinos = generar_combinaciones(matutinos, arreglo_materias)
 
+    # Guardar horarios en archivos Excel
+    if posibles_horarios_vespertinos:
+        crear_horario_excel(posibles_horarios_vespertinos, 'HorariosVespertinos.xlsx')
+        print("Horario guardado en 'HorariosVespertinos.xlsx'")
+    else:
+        print("No hay horarios vespertinos disponibles")
+
+    if posibles_horarios_matutinos:
+        crear_horario_excel(posibles_horarios_matutinos, 'HorariosMatutinos.xlsx')
+        print("Horario guardado en 'HorariosMatutinos.xlsx'")
+    else:
+        print("No hay horarios matutinos disponibles")
+    
 main()
