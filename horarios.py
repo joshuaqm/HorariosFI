@@ -79,54 +79,57 @@ def generar_combinaciones(grupos, claves_asignaturas):
     return posibles_horarios
 
 def crear_horario_excel(horarios, archivo_salida):
-    wb = Workbook()
-    ws = wb.active
-    ws.title = "Horario Semanal"
+    try:
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Horario Semanal"
 
-    # Cabeceras de días de la semana
-    dias_semana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
-    horas = [f"{h:02d}:{m:02d}" for h in range(7, 24) for m in (0, 30)]
-    
-    fila_inicio = 1
-    for i, horario in enumerate(horarios):
-        # Escribir cabeceras
-        ws.cell(row=fila_inicio, column=1, value='Hora')
-        for col, dia in enumerate(dias_semana, start=2):
-            ws.cell(row=fila_inicio, column=col, value=dia)
-        ws.cell(row=fila_inicio, column=len(dias_semana) + 2, value='Datos del Grupo')
+        # Cabeceras de días de la semana
+        dias_semana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
+        horas = [f"{h:02d}:{m:02d}" for h in range(7, 24) for m in (0, 30)]
+        
+        fila_inicio = 1
+        for i, horario in enumerate(horarios):
+            # Escribir cabeceras
+            ws.cell(row=fila_inicio, column=1, value='Hora')
+            for col, dia in enumerate(dias_semana, start=2):
+                ws.cell(row=fila_inicio, column=col, value=dia)
+            ws.cell(row=fila_inicio, column=len(dias_semana) + 2, value='Datos del Grupo')
 
-        # Escribir rango de horas
-        for row, hora in enumerate(horas, start=fila_inicio + 1):
-            ws.cell(row=row, column=1, value=hora)
+            # Escribir rango de horas
+            for row, hora in enumerate(horas, start=fila_inicio + 1):
+                ws.cell(row=row, column=1, value=hora)
 
-        # Ubicar los horarios en las celdas correspondientes
-        for grupo in horario:
-            inicio, fin = grupo.horario
-            datos_grupo = f"{grupo.clave} - {grupo.grupo} - {grupo.profesor}"
+            # Ubicar los horarios en las celdas correspondientes
+            for grupo in horario:
+                inicio, fin = grupo.horario
+                datos_grupo = f"{grupo.clave} - {grupo.grupo} - {grupo.profesor}"
 
-            inicio_idx = horas.index(inicio) + fila_inicio + 1
-            fin_idx = horas.index(fin) + fila_inicio + 1
+                inicio_idx = horas.index(inicio) + fila_inicio + 1
+                fin_idx = horas.index(fin) + fila_inicio + 1
 
-            for dia in grupo.dias:
-                for fila in range(inicio_idx, fin_idx):
-                    # Escribir el grupo en el horario correspondiente
-                    if ws.cell(row=fila, column=dia + 1).value:
-                        ws.cell(row=fila, column=dia + 1).value += f", {grupo.clave}-{grupo.grupo}"
-                    else:
-                        ws.cell(row=fila, column=dia + 1, value=f"{grupo.clave}-{grupo.grupo}")
-                    ws.cell(row=fila, column=dia + 1).alignment = Alignment(horizontal='center', vertical='center')
+                for dia in grupo.dias:
+                    for fila in range(inicio_idx, fin_idx):
+                        # Escribir el grupo en el horario correspondiente
+                        if ws.cell(row=fila, column=dia + 1).value:
+                            ws.cell(row=fila, column=dia + 1).value += f", {grupo.clave}-{grupo.grupo}"
+                        else:
+                            ws.cell(row=fila, column=dia + 1, value=f"{grupo.clave}-{grupo.grupo}")
+                        ws.cell(row=fila, column=dia + 1).alignment = Alignment(horizontal='center', vertical='center')
 
-            # Añadir datos del grupo al lado derecho
-            grupo_fila = fila_inicio + 1 + horario.index(grupo) * 2  # Incrementar la fila por cada grupo
-            ws.cell(row=grupo_fila, column=len(dias_semana) + 2, value=datos_grupo)
-            ws.cell(row=grupo_fila, column=len(dias_semana) + 2).alignment = Alignment(horizontal='left', vertical='top')
+                # Añadir datos del grupo al lado derecho
+                grupo_fila = fila_inicio + 1 + horario.index(grupo) * 2  # Incrementar la fila por cada grupo
+                ws.cell(row=grupo_fila, column=len(dias_semana) + 2, value=datos_grupo)
+                ws.cell(row=grupo_fila, column=len(dias_semana) + 2).alignment = Alignment(horizontal='left', vertical='top')
 
-        # Incrementar la fila de inicio para la próxima tabla con un espaciado de 5 filas
-        fila_inicio += len(horas) + 6
+            # Incrementar la fila de inicio para la próxima tabla con un espaciado de 5 filas
+            fila_inicio += len(horas) + 6
 
-    wb.save(archivo_salida)
-
-
+        wb.save(archivo_salida)
+        return True
+    except Exception as e:
+        print(f"Error: {e}")
+        return False
 
 
 # Configura el servicio de EdgeDriver (suponiendo que msedgedriver esté en el PATH)
@@ -187,8 +190,9 @@ def obtenerDatos(arreglo_materias):
 
 def main():
     # Base de Datos, Lab BD, Circuitos Electricos, Lab Circuitos, Finanzas, Inteligencia Artificial, Economia
-    arreglo_materias = [1644, 6644, 1562, 1537, 406, 1413]
-    # arreglo_materias = [1644,1562]
+    # arreglo_materias = [1644, 6644, 1562, 6562, 1537, 406, 1413]
+    # arreglo_materias = [1562, 6562, 1537, 1535, 406, 434, 1686, 6686, 1413]
+    arreglo_materias = [1644,1562]
     grupos = obtenerDatos(arreglo_materias)
     #Le damos formato de arreglo al horario y dias
     formatearObjetos(grupos)
@@ -205,9 +209,12 @@ def main():
             if len(horario) == len(arreglo_materias):
                 opciones.append(horario)
         
-        crear_horario_excel(opciones, 'HorariosVespertinos.xlsx')
-        print("Horario guardado en 'HorariosVespertinos.xlsx'")
-        print("Opciones vespertinas generadas:", len(opciones))
+        success = crear_horario_excel(opciones, 'HorariosVespertinos.xlsx')
+        if success:
+            print("Opciones vespertinas generadas:", len(opciones))
+            print("Horario guardado en 'HorariosVespertinos.xlsx'")
+        else:
+            print("Error al guardar el archivo")
     else:
         print("No hay horarios vespertinos disponibles")
 
@@ -217,10 +224,12 @@ def main():
             if len(horario) == len(arreglo_materias):
                 opciones.append(horario)
         
-        crear_horario_excel(opciones, 'HorariosMatutinos.xlsx')
-        print("Horario guardado en 'HorariosMatutinos.xlsx'")
-        print("Opciones matutinas generadas:", len(opciones))
-
+        success = crear_horario_excel(opciones, 'HorariosMatutinos.xlsx')
+        if success:
+            print("Opciones matutinas generadas:", len(opciones))
+            print("Horario guardado en 'HorariosMatutinos.xlsx'")
+        else:
+            print("Error al guardar el archivo")
     else:
         print("No hay horarios matutinos disponibles")
     
