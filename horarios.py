@@ -251,5 +251,7 @@ def main():
             print("Horario guardado en 'Horarios.xlsx'")
         else:
             print("Error al guardar el archivo")
+    else:
+        print('No hay opciones disponibles')
 
 main()
