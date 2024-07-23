@@ -1,3 +1,20 @@
+'''
+AUTOR: FRANCISCO JOSHUA QUINTERO MONTERO
+
+ARMADOR DE HORARIOS DE LA FACULTAD DE INGENIERÍA UNAM
+Este script permite obtener los horarios de las asignaturas de la Facultad de Ingeniería de la UNAM
+y generar horarios personalizados para un conjunto de asignaturas específicas.
+
+Requisitos:
+- Python 3.6 o superior
+- Selenium
+- BeautifulSoup
+- Openpyxl
+- EdgeDriver (Microsoft Edge)
+- combinations (itertools)
+- openpyxl
+
+'''
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -46,6 +63,7 @@ def es_vespertino(grupo):
     return any(hora >= '15:00' for hora in grupo.horario)
 
 def separar_grupos_por_horario(grupos):
+
     matutinos = [grupo for grupo in grupos if not es_vespertino(grupo)]
     vespertinos = [grupo for grupo in grupos if es_vespertino(grupo)]
     return matutinos, vespertinos
@@ -187,50 +205,51 @@ def obtenerDatos(arreglo_materias):
         # Cierra el navegador al finalizar
         driver.quit()
 
+def filtrar_grupos_por_dias_y_horas(grupos, dias_deseados, horario_deseado):
+    grupos_filtrados = []
+    entrada_deseada, salida_deseada = [int(h.replace(':', '')) for h in horario_deseado]
+    
+    for grupo in grupos:
+        horario_inicio, horario_fin = [int(h.replace(':', '')) for h in grupo.horario]
+        
+        # Verificar si los días del grupo están dentro de los días deseados
+        if all(dia in dias_deseados for dia in grupo.dias):
+            # Verificar si el horario del grupo está dentro del horario deseado
+            if entrada_deseada <= horario_inicio and horario_fin <= salida_deseada:
+                grupos_filtrados.append(grupo)
+    
+    return grupos_filtrados
 
 def main():
     # Base de Datos, Lab BD, Circuitos Electricos, Lab Circuitos, Finanzas, Inteligencia Artificial, Economia
     # arreglo_materias = [1644, 6644, 1562, 6562, 1537, 406, 1413]
     # arreglo_materias = [1562, 6562, 1537, 1535, 406, 434, 1686, 6686, 1413]
-    arreglo_materias = [1644,1562]
-    grupos = obtenerDatos(arreglo_materias)
-    #Le damos formato de arreglo al horario y dias
-    formatearObjetos(grupos)
-
-    matutinos, vespertinos = separar_grupos_por_horario(grupos)
-
-    posibles_horarios_vespertinos = generar_combinaciones(vespertinos, arreglo_materias)
-    posibles_horarios_matutinos = generar_combinaciones(matutinos, arreglo_materias)
-
-    # Guardar horarios en archivos Excel
-    if posibles_horarios_vespertinos:
-        opciones = []
-        for horario in posibles_horarios_vespertinos:
-            if len(horario) == len(arreglo_materias):
-                opciones.append(horario)
-        
-        success = crear_horario_excel(opciones, 'HorariosVespertinos.xlsx')
-        if success:
-            print("Opciones vespertinas generadas:", len(opciones))
-            print("Horario guardado en 'HorariosVespertinos.xlsx'")
-        else:
-            print("Error al guardar el archivo")
-    else:
-        print("No hay horarios vespertinos disponibles")
-
-    if posibles_horarios_matutinos:
-        opciones = []
-        for horario in posibles_horarios_matutinos:
-            if len(horario) == len(arreglo_materias):
-                opciones.append(horario)
-        
-        success = crear_horario_excel(opciones, 'HorariosMatutinos.xlsx')
-        if success:
-            print("Opciones matutinas generadas:", len(opciones))
-            print("Horario guardado en 'HorariosMatutinos.xlsx'")
-        else:
-            print("Error al guardar el archivo")
-    else:
-        print("No hay horarios matutinos disponibles")
+    # Arreglo de claves de asignaturas
+    arreglo_materias = [1644, 1562]
+    # Arreglo de dias deseados para asistir a clases (1=Lunes, 2=Martes, 3=Miercoles, 4=Jueves, 5=Viernes, 6=Sabado)
+    arreglo_dias = [1, 2, 3, 4, 5] 
+    # Arreglo de horarios deseados para asistir a clases (hora de entrada, hora de salida)
+    horario_deseado = ['15:00', '22:00'] 
     
+    grupos = obtenerDatos(arreglo_materias)
+    # Le damos formato de arreglo al horario y dias
+    formatearObjetos(grupos)
+    
+    # Filtrar grupos por días y horas deseadas
+    grupos_filtrados = filtrar_grupos_por_dias_y_horas(grupos, arreglo_dias, horario_deseado)
+
+    posibles_horarios = generar_combinaciones(grupos_filtrados, arreglo_materias)
+    if posibles_horarios:
+        opciones = []
+        for horario in posibles_horarios:
+            if len(horario) == len(arreglo_materias):
+                opciones.append(horario)
+        
+        success = crear_horario_excel(opciones, 'Horarios.xlsx')
+        if success:
+            print("Opciones generadas:", len(opciones))
+            print("Horario guardado en 'Horarios.xlsx'")
+        else:
+            print("Error al guardar el archivo")
+
 main()
