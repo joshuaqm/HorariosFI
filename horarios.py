@@ -3,7 +3,9 @@ AUTOR: FRANCISCO JOSHUA QUINTERO MONTERO
 
 ARMADOR DE HORARIOS DE LA FACULTAD DE INGENIERÍA UNAM
 Este script permite obtener los horarios de las asignaturas de la Facultad de Ingeniería de la UNAM
-y generar horarios personalizados para un conjunto de asignaturas específicas.
+y generar horarios personalizados para un conjunto de asignaturas específicas, ahora se puede descartar
+opciones de profesores, al igual que también se pueden descartar horarios si se tiene alguna otra actividad
+que se traslape con alguna materia
 
 Requisitos:
 - Python 3.6 o superior
@@ -15,6 +17,7 @@ Requisitos:
 - openpyxl
 
 '''
+
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -77,6 +80,16 @@ def horarios_no_se_traslapen(horario1, dias1, horario2, dias2):
     inicio2, fin2 = [int(h.replace(':', '')) for h in horario2]
     return fin1 <= inicio2 or fin2 <= inicio1
 
+def grupo_en_excepciones(grupo):
+    excepciones = [
+        (1644, 3, "ING. LUCILA PATRICIA ARELLANO MENDOZA"),
+        (840, 4, "ING. PATRICIA DEL VALLE MORALES"),
+        (1562, 5, "DR. JUAN CARLOS MARTINEZ ROSAS"),
+        (6644, 1, "ING. PROFESOR POR ASIGNAR"),
+        (6644, 6, "ING. PROFESOR POR ASIGNAR")
+    ]
+    return (grupo.clave, grupo.grupo, grupo.profesor) in excepciones
+
 
 def generar_combinaciones(grupos, claves_asignaturas):
     posibles_horarios = []
@@ -84,6 +97,13 @@ def generar_combinaciones(grupos, claves_asignaturas):
     for combinacion in combinations(grupos, len(claves_asignaturas)):
         if len(set(grupo.clave for grupo in combinacion)) == len(claves_asignaturas):
             valido = True
+            for grupo in combinacion:
+                if grupo_en_excepciones(grupo):
+                    valido = False
+                    break
+            if not valido:
+                continue
+
             for i, grupo1 in enumerate(combinacion):
                 for grupo2 in combinacion[i+1:]:
                     if not horarios_no_se_traslapen(grupo1.horario, grupo1.dias, grupo2.horario, grupo2.dias):
@@ -91,10 +111,12 @@ def generar_combinaciones(grupos, claves_asignaturas):
                         break
                 if not valido:
                     break
+
             if valido:
                 posibles_horarios.append(combinacion)
     
     return posibles_horarios
+
 
 def crear_horario_excel(horarios, archivo_salida):
     try:
@@ -220,16 +242,39 @@ def filtrar_grupos_por_dias_y_horas(grupos, dias_deseados, horario_deseado):
     
     return grupos_filtrados
 
+def horarios_no_disponibles(grupo):
+    for dia in grupo.dias:
+        # Lunes, martes, miércoles, jueves y viernes de 15:00 a 18:00
+        if dia in [1, 2, 3, 4, 5]:
+            if '15:00' <= grupo.horario[0] < '18:00' or '15:00' < grupo.horario[1] <= '18:00':
+                return True
+        # Lunes, miércoles y viernes de 13:00 a 15:00
+        if dia in [1, 3, 5]:
+            if '13:00' <= grupo.horario[0] < '15:00' or '13:00' < grupo.horario[1] <= '15:00':
+                return True
+        # Martes, jueves y viernes de 11:00 a 13:00
+        if dia in [2, 4, 5]:
+            if '11:00' <= grupo.horario[0] < '13:00' or '11:00' < grupo.horario[1] <= '13:00':
+                return True
+        # Sabado de 10:00 a 13:00 (hora de Finazas 1537 - 5- ING. HEIDDY ALEJANDRA PASTEN LUGO)
+        if dia in [6]:
+            if '10:00' <= grupo.horario[0] < '13:00' or '10:00' < grupo.horario[1] <= '13:00':
+                return True
+    return False
+
+def filtrar_horarios_no_disponibles(grupos):
+    return [grupo for grupo in grupos if not horarios_no_disponibles(grupo)]
+
 def main():
     # Base de Datos, Lab BD, Circuitos Electricos, Lab Circuitos, Finanzas, Inteligencia Artificial, Economia
     # arreglo_materias = [1644, 6644, 1562, 6562, 1537, 406, 1413]
     # arreglo_materias = [1562, 6562, 1537, 1535, 406, 434, 1686, 6686, 1413]
     # Arreglo de claves de asignaturas
-    arreglo_materias = [1644, 1562]
+    arreglo_materias = [1644, 6644, 840, 1562, 6562, 1052]
     # Arreglo de dias deseados para asistir a clases (1=Lunes, 2=Martes, 3=Miercoles, 4=Jueves, 5=Viernes, 6=Sabado)
-    arreglo_dias = [1, 2, 3, 4, 5] 
+    arreglo_dias = [1, 2, 3, 4, 5, 6] 
     # Arreglo de horarios deseados para asistir a clases (hora de entrada, hora de salida)
-    horario_deseado = ['15:00', '22:00'] 
+    horario_deseado = ['7:00', '17:00'] 
     
     grupos = obtenerDatos(arreglo_materias)
     # Le damos formato de arreglo al horario y dias
@@ -237,6 +282,9 @@ def main():
     
     # Filtrar grupos por días y horas deseadas
     grupos_filtrados = filtrar_grupos_por_dias_y_horas(grupos, arreglo_dias, horario_deseado)
+    
+    # Filtrar grupos por horarios no disponibles
+    grupos_filtrados = filtrar_horarios_no_disponibles(grupos_filtrados)
 
     posibles_horarios = generar_combinaciones(grupos_filtrados, arreglo_materias)
     if posibles_horarios:
