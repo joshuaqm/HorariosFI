@@ -7,12 +7,11 @@ y generar horarios personalizados para un conjunto de asignaturas específicas.
 
 Requisitos:
 - Python 3.6 o superior
-- Selenium
-- BeautifulSoup
-- Openpyxl
-- EdgeDriver (Microsoft Edge)
-- combinations (itertools)
-- openpyxl
+- Selenium (pip install selenium)
+- BeautifulSoup (pip install beautifulsoup4)
+- Openpyxl (pip install openpyxl)
+- WebDriver Manager (pip install webdriver-manager)
+- itertools (incluido en Python por defecto)
 
 '''
 from selenium import webdriver
@@ -150,32 +149,77 @@ def crear_horario_excel(horarios, archivo_salida):
         return False
 
 
-# Configura el servicio de EdgeDriver (suponiendo que msedgedriver esté en el PATH)
-driver = webdriver.Edge()
-
-# Abre la página web
-driver.get("https://www.ssa.ingenieria.unam.mx/horarios.html")
-
 asignaturas = []  # Lista para almacenar objetos Asignatura
 
 def obtenerDatos(arreglo_materias):
+    # Configura el servicio de EdgeDriver con opciones
+    from selenium.webdriver.edge.service import Service
+    from selenium.webdriver.edge.options import Options
+    
+    # Configurar opciones del navegador
+    edge_options = Options()
+    edge_options.add_experimental_option('excludeSwitches', ['enable-logging'])
+    edge_options.add_experimental_option('useAutomationExtension', False)
+    edge_options.add_argument('--disable-blink-features=AutomationControlled')
+    edge_options.add_argument('--disable-extensions')
+    # edge_options.add_argument('--headless')  # Opcional: ejecutar sin interfaz gráfica
+    
+    # Intentar diferentes formas de inicializar el driver
+    driver = None
     try:
-        # Espera a que el formulario esté presente
-        form = WebDriverWait(driver, 10).until(
+        # Método 1: Usando Service (más moderno)
+        try:
+            service = Service()
+            driver = webdriver.Edge(service=service, options=edge_options)
+        except Exception:
+            # Método 2: Usando webdriver-manager (automático)
+            try:
+                from webdriver_manager.microsoft import EdgeChromiumDriverManager
+                service = Service(EdgeChromiumDriverManager().install())
+                driver = webdriver.Edge(service=service, options=edge_options)
+            except ImportError:
+                print("webdriver-manager no está instalado. Instálalo con: pip install webdriver-manager")
+                return []
+        
+        # Abre la página web
+        driver.get("https://www.ssa.ingenieria.unam.mx/horarios.html")
+        
+        # Espera adicional para que la página se cargue completamente
+        import time
+        time.sleep(3)
+        
+        # Espera a que el formulario esté presente y visible
+        form = WebDriverWait(driver, 20).until(
             EC.presence_of_element_located((By.ID, "hrsFormHorarioAsignatura"))
         )
-
-        # Encuentra los elementos del formulario
-        clave_input = form.find_element(By.ID, "clave")
-        buscar_button = form.find_element(By.ID, "buscar")
+        
+        # Espera a que los elementos del formulario estén presentes e interactuables
+        clave_input = WebDriverWait(driver, 20).until(
+            EC.element_to_be_clickable((By.ID, "clave"))
+        )
+        buscar_button = WebDriverWait(driver, 20).until(
+            EC.element_to_be_clickable((By.ID, "buscar"))
+        )
 
         prioridad = 0
         # Llena los campos del formulario
         for clave in arreglo_materias:
             prioridad += 1
-            clave_input.send_keys(str(clave))  # Asegúrate de enviar la clave como string
-            # Envía el formulario haciendo clic en el botón de búsqueda
+            
+            # Asegurarse de que el campo esté limpio
+            clave_input.clear()
+            time.sleep(1)
+            
+            # Enviar la clave
+            clave_input.send_keys(str(clave))
+            time.sleep(1)
+            
+            # Hacer clic en el botón de búsqueda
             buscar_button.click()
+            
+            # Esperar a que los resultados se carguen
+            time.sleep(3)
+            
             page_source = driver.page_source
             soup = BeautifulSoup(page_source, 'html.parser')
             # Encuentra la tabla por su clase
@@ -195,15 +239,20 @@ def obtenerDatos(arreglo_materias):
                 print(f"Datos obtenidos para la clave de asignatura: {clave}")
             else:
                 print(f"No se encontró la clave de asignatura: {clave} en la página de horarios.")
+                
+            # Limpiar el campo para la siguiente búsqueda
             clave_input.clear()
+            time.sleep(1)
         return asignaturas
     except Exception as e:
         # En caso de error, captura la excepción y muestra un mensaje
         print("Error al cargar la página:", e)
+        return []
 
     finally:
         # Cierra el navegador al finalizar
-        driver.quit()
+        if driver:
+            driver.quit()
 
 def filtrar_grupos_por_dias_y_horas(grupos, dias_deseados, horario_deseado):
     grupos_filtrados = []
@@ -225,18 +274,25 @@ def main():
     # arreglo_materias = [1644, 6644, 1562, 6562, 1537, 406, 1413]
     # arreglo_materias = [1562, 6562, 1537, 1535, 406, 434, 1686, 6686, 1413]
     # Arreglo de claves de asignaturas
-    arreglo_materias = [1644, 1562]
+    arreglo_materias = [1598, 1672, 2080, 2929]
     # Arreglo de dias deseados para asistir a clases (1=Lunes, 2=Martes, 3=Miercoles, 4=Jueves, 5=Viernes, 6=Sabado)
-    arreglo_dias = [1, 2, 3, 4, 5] 
+    arreglo_dias = [1, 3, 4] 
     # Arreglo de horarios deseados para asistir a clases (hora de entrada, hora de salida)
-    horario_deseado = ['15:00', '22:00'] 
+    horario_deseado = ['09:00', '21:00'] 
     
     grupos = obtenerDatos(arreglo_materias)
+    print(f"Total de grupos obtenidos: {len(grupos)}")
+    
     # Le damos formato de arreglo al horario y dias
     formatearObjetos(grupos)
     
     # Filtrar grupos por días y horas deseadas
     grupos_filtrados = filtrar_grupos_por_dias_y_horas(grupos, arreglo_dias, horario_deseado)
+    print(f"Grupos filtrados: {len(grupos_filtrados)}")
+    
+    # Mostrar información de los grupos filtrados
+    for grupo in grupos_filtrados:
+        print(f"Clave: {grupo.clave}, Grupo: {grupo.grupo}, Horario: {grupo.horario}, Días: {grupo.dias}")
 
     posibles_horarios = generar_combinaciones(grupos_filtrados, arreglo_materias)
     if posibles_horarios:
